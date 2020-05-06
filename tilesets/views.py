@@ -764,6 +764,86 @@ def register_url(request):
 
     return JsonResponse({ 'uid': new_obj.uuid }, content_type="text/plain")
 
+@api_view(['GET', 'POST'])
+def aggregation(request):
+    '''
+    Register an array of aggregation groups with the database and return a unique ID, with an expiration time.
+    Parameters:
+        request: The HTTP request associate with this post action
+            uid: A unique identifier for the tileset
+            groups: A 2-dimensional array containing sub-arrays of sample indices.
+            higlassVersion
+    Returns:
+        HttpResponse code for the request, 200 if the action is successful
+    '''
+    if request.method == 'POST':
+        if not hss.UPLOAD_ENABLED:
+            return JsonResponse({
+                'error': 'Uploads disabled'
+            }, status=403)
+
+        if request.user.is_anonymous and not hss.PUBLIC_UPLOAD_ENABLED:
+            return JsonResponse({
+                'error': 'Public uploads disabled'
+            }, status=403)
+
+        groups_wrapper = json.loads(request.body.decode('utf-8'))
+        uid = groups_wrapper.get('uid') or slugid.nice()
+
+
+        try:
+            groups = json.dumps(groups_wrapper['groups'])
+        except KeyError:
+            return JsonResponse({
+                'error': 'Broken groups array'
+            }, status=rfs.HTTP_400_BAD_REQUEST)
+        
+        try:
+            tileset_uid = groups_wrapper['tilesetUid']
+        except KeyError:
+            return JsonResponse({
+                'error': 'No tilesetUid provided'
+            }, status=rfs.HTTP_400_BAD_REQUEST)
+
+        try:
+            higlass_version = groups_wrapper['higlassVersion']
+        except KeyError:
+            higlass_version = ''
+
+        existing_object = tm.AggregationGroups.objects.filter(uuid=uid)
+        if len(existing_object) > 0:
+            return JsonResponse({
+                'error': 'Object with uid {} already exists'.format(uid)
+            }, status=rfs.HTTP_400_BAD_REQUEST);
+
+        serializer = tss.AggregationGroupsSerializer(data={'groups': groups})
+
+        if not serializer.is_valid():
+            return JsonResponse({
+                'error': 'Serializer not valid'
+            }, status=rfs.HTTP_400_BAD_REQUEST)
+
+        serializer.save(
+            uuid=uid, groups=groups, tilesetUid=tileset_uid, higlassVersion=higlass_version
+        )
+
+        return JsonResponse({'uid': uid})
+
+    uid = request.GET.get('d')
+
+    if not uid:
+        return JsonResponse({
+            'error': 'Aggregation groups ID not specified'
+        }, status=404)
+
+    try:
+        obj = tm.AggregationGroups.objects.get(uuid=uid)
+    except ObjectDoesNotExist:
+        return JsonResponse({
+            'error': 'Aggregation groups not found'
+        }, status=404)
+
+    return JsonResponse(json.loads(obj.groups), safe=False)
 
 @method_decorator(gzip_page, name='dispatch')
 class TilesetsViewSet(viewsets.ModelViewSet):

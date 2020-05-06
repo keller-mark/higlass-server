@@ -86,3 +86,20 @@ class Tileset(models.Model):
         admin interface.
         '''
         return "Tileset [name: {}] [ft: {}] [uuid: {}]".format(self.name, self.filetype, self.uuid)
+
+class AggregationGroups(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+    higlassVersion = models.CharField(max_length=16, default='')
+    uuid = models.CharField(max_length=100, unique=True, default=decoded_slugid)
+    tilesetUid = models.CharField(max_length=100, null=True)
+    groups = models.TextField()
+
+    class Meta:
+        ordering = ('created',)
+
+    def __str__(self):
+        '''
+        Get a string representation of this model. Hopefully useful for the
+        admin interface.
+        '''
+        return "AggregationGroups [uuid: {}] [tilesetUid: {}]".format(self.uuid, self.tilesetUid)

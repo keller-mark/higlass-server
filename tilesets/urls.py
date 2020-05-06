@@ -16,6 +16,7 @@ router.register(r'tilesets', views.TilesetsViewSet, 'tilesets')
 urlpatterns = [
     #url(r'^schema', schema_view),
     url(r'^viewconf', views.viewconfs),
+    url(r'^aggregation', views.aggregation),
     url(r'^uids_by_filename', views.uids_by_filename),
     url(r'^tiles/$', views.tiles),
     url(r'^tileset_info/$', views.tileset_info),

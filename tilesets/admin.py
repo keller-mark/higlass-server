@@ -2,6 +2,7 @@ from django.contrib import admin
 from tilesets.models import Tileset
 from tilesets.models import ViewConf
 from tilesets.models import Project
+from tilesets.models import AggregationGroups
 # Register your models here.
 
 
@@ -35,7 +36,15 @@ class ProjectConfAdmin(admin.ModelAdmin):
         'description',
     ]
 
+class AggregationGroupsAdmin(admin.ModelAdmin):
+    list_display = [
+        'created',
+        'uuid',
+        'higlassVersion',
+        'tilesetUid',
+    ]
 
 admin.site.register(Tileset, TilesetAdmin)
 admin.site.register(ViewConf, ViewConfAdmin)
 admin.site.register(Project, ProjectConfAdmin)
+admin.site.register(AggregationGroups, AggregationGroupsAdmin)

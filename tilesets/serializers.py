@@ -1,7 +1,7 @@
 import logging
 
 from rest_framework import serializers
-from tilesets.models import Tileset, ViewConf
+from tilesets.models import Tileset, ViewConf, AggregationGroups
 from django.contrib.auth.models import User
 import tilesets.generate_tiles as tgt
 import tilesets.models as tm
@@ -105,3 +105,8 @@ class UserFacingTilesetSerializer(TilesetSerializer):
             'project_owner',
             'description',
         )
+
+class AggregationGroupsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AggregationGroups
+        fields = ('uuid', 'groups')
