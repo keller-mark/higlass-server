@@ -427,11 +427,12 @@ def tiles(request):
             tilesets[tileset_uuid] = tileset
         
         # get the aggregation groups object
-        if agg_group_uuid in aggregation_groups:
-            agg_group = aggregation_groups[tileset_uuid]
-        else:
-            agg_group = tm.AggregationGroups.objects.get(uuid=agg_group_uuid)
-            aggregation_groups[tileset_uuid] = agg_group
+        if agg_group_uuid:
+            if agg_group_uuid in aggregation_groups:
+                agg_group = aggregation_groups[tileset_uuid]
+            else:
+                agg_group = tm.AggregationGroups.objects.get(uuid=agg_group_uuid)
+                aggregation_groups[tileset_uuid] = agg_group
 
         if tileset.filetype == 'cooler':
             # cooler tiles can have a transform (e.g. 'ice', 'kr') which

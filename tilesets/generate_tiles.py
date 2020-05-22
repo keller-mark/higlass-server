@@ -163,6 +163,16 @@ def generate_1d_tiles(filename, tile_ids, get_data_function, aggregation_groups)
 
         dense = get_data_function(filename, tile_position)
 
+        print(type(dense))
+        print(dense.shape)
+
+        if aggregation_groups != None:
+            aggregation_function = lambda x: np.sum(x, axis=0) # TODO: enable different ones to be used
+            dense = np.array(list(map(aggregation_function, [ dense[agg_group] for agg_group in aggregation_groups ])))
+
+        print(type(dense))
+        print(dense.shape)
+
         if len(dense):
             max_dense = max(dense.reshape(-1,))
             min_dense = min(dense.reshape(-1,))
