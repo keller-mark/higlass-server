@@ -12,6 +12,7 @@ import clodius.tiles.cooler as hgco
 import clodius.tiles.geo as hggo
 import clodius.tiles.imtiles as hgim
 
+import json
 import h5py
 import itertools as it
 import numpy as np
@@ -105,11 +106,32 @@ def extract_tileset_uid(tile_id):
 
     return tileset_uuid
 
+def extract_aggregation_groups_uid(tile_id):
+    '''
+    Get the aggregation group uid from a tile id. Should usually be all the text
+    after the third dot.
+
+    Parameters
+    ----------
+    tile_id : str
+        The id of the tile we're getting the tileset info for (e.g. xyz.0.0.1)
+    Returns
+    -------
+    agg_groups_uuid : str
+        The uid of the aggregation group that this tile should use
+    '''
+    tile_id_parts = tile_id.split('.')
+    agg_groups_uuid = None
+    if len(tile_id_parts) == 4:
+        agg_groups_uuid = tile_id_parts[3]
+
+    return agg_groups_uuid
+
 
 def get_tileset_filetype(tileset):
     return tileset.filetype
 
-def generate_1d_tiles(filename, tile_ids, get_data_function):
+def generate_1d_tiles(filename, tile_ids, get_data_function, aggregation_groups):
     '''
     Generate a set of tiles for the given tile_ids.
 
@@ -122,12 +144,17 @@ def generate_1d_tiles(filename, tile_ids, get_data_function):
         to be retrieved
     get_data_function: lambda
         A function which retrieves the data for this tile
+    aggregation_groups: [ [int,...], [int,...] ]
+        A list of lists of indices of rows to aggregate ("aggregation groups").
 
     Returns
     -------
     tile_list: [(tile_id, tile_data),...]
         A list of tile_id, tile_data tuples
     '''
+
+    print(aggregation_groups)
+
     generated_tiles = []
 
     for tile_id in tile_ids:
@@ -482,13 +509,16 @@ def generate_tiles(tileset_tile_ids):
     tile_ids: [str,...]
         A list of tile_ids (e.g. xyx.0.0.1) identifying the tiles
         to be retrieved
+    aggregation_group: tilesets.models.AggregationGroups object or None
+        An optional 2-dimensional array representing rows to aggregate,
+        used with multivec tracks.
 
     Returns
     -------
     tile_list: [(tile_id, tile_data),...]
         A list of tile_id, tile_data tuples
     '''
-    tileset, tile_ids, raw = tileset_tile_ids
+    tileset, tile_ids, raw, aggregation_group = tileset_tile_ids
 
     if tileset.filetype == 'hitile':
         return generate_hitile_tiles(tileset, tile_ids)
@@ -509,10 +539,18 @@ def generate_tiles(tileset_tile_ids):
         chromsizes = get_chromsizes(tileset)
         return hgbb.tiles(tileset.datafile.path, tile_ids, chromsizes=chromsizes)
     elif tileset.filetype == 'multivec':
+        groups = None
+        if aggregation_group != None:
+            try:
+                groups = json.loads(aggregation_group.groups)
+            except Exception as ex:
+                # there was an error parsing the JSON array
+                logger.warn(ex)
         return generate_1d_tiles(
                 tileset.datafile.path,
                 tile_ids,
-                ctmu.get_single_tile)
+                ctmu.get_single_tile,
+                groups)
     elif tileset.filetype == 'imtiles':
         return hgim.get_tiles(tileset.datafile.path, tile_ids, raw)
     elif tileset.filetype == 'bam':

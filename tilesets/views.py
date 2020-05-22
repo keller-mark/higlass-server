@@ -395,6 +395,7 @@ def tiles(request):
     '''
     # create a set so that we don't fetch the same tile multiple times
     tileids_to_fetch = set(request.GET.getlist("d"))
+
     # with ProcessPoolExecutor() as executor:
     #       res = executor.map(parallelize, hargs)
     '''
@@ -411,17 +412,26 @@ def tiles(request):
 
     tilesets = {}
     transform_id_to_original_id = {}
+    aggregation_groups = {}
 
     # sort tile_ids by the dataset they come from
     for tile_id in tileids_to_fetch:
         tileset_uuid = tgt.extract_tileset_uid(tile_id)
-
+        agg_group_uuid = tgt.extract_aggregation_groups_uid(tile_id)
+        
         # get the tileset object first
         if tileset_uuid in tilesets:
             tileset = tilesets[tileset_uuid]
         else:
             tileset = tm.Tileset.objects.get(uuid=tileset_uuid)
             tilesets[tileset_uuid] = tileset
+        
+        # get the aggregation groups object
+        if agg_group_uuid in aggregation_groups:
+            agg_group = aggregation_groups[tileset_uuid]
+        else:
+            agg_group = tm.AggregationGroups.objects.get(uuid=agg_group_uuid)
+            aggregation_groups[tileset_uuid] = agg_group
 
         if tileset.filetype == 'cooler':
             # cooler tiles can have a transform (e.g. 'ice', 'kr') which
@@ -454,7 +464,7 @@ def tiles(request):
 
     # fetch the tiles
     tilesets = [tilesets[tu] for tu in tileids_by_tileset]
-    accessible_tilesets = [(t, tileids_by_tileset[t.uuid], raw) for t in tilesets if ((not t.private) or request.user == t.owner)]
+    accessible_tilesets = [(t, tileids_by_tileset[t.uuid], raw, aggregation_groups.get(t.uuid, None)) for t in tilesets if ((not t.private) or request.user == t.owner)]
 
     #pool = mp.Pool(6)
 
@@ -477,7 +487,6 @@ def tiles(request):
     tiles_to_return = {}
 
     for (tile_id, tile_value) in generated_tiles:
-
         try:
             rdb.set(tile_id, pickle.dumps(tile_value))
         except Exception as ex:

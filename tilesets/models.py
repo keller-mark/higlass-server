@@ -94,6 +94,9 @@ class AggregationGroups(models.Model):
     tilesetUid = models.CharField(max_length=100, null=True)
     groups = models.TextField()
 
+    # TODO: remove tilesetUid
+    # TODO: add string representing the aggregation function
+
     class Meta:
         ordering = ('created',)
 
