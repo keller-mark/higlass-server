@@ -417,7 +417,7 @@ def tiles(request):
     # sort tile_ids by the dataset they come from
     for tile_id in tileids_to_fetch:
         tileset_uuid = tgt.extract_tileset_uid(tile_id)
-        agg_group_uuid = tgt.extract_aggregation_groups_uid(tile_id)
+        agg_group_uuid, agg_func_name = tgt.extract_aggregation_groups_uid(tile_id)
         
         # get the tileset object first
         if tileset_uuid in tilesets:
@@ -427,12 +427,10 @@ def tiles(request):
             tilesets[tileset_uuid] = tileset
         
         # get the aggregation groups object
-        if agg_group_uuid:
-            if agg_group_uuid in aggregation_groups:
-                agg_group = aggregation_groups[tileset_uuid]
-            else:
+        if agg_group_uuid and agg_func_name:
+            if tileset_uuid not in aggregation_groups:
                 agg_group = tm.AggregationGroups.objects.get(uuid=agg_group_uuid)
-                aggregation_groups[tileset_uuid] = agg_group
+                aggregation_groups[tileset_uuid] = (agg_group, agg_func_name)
 
         if tileset.filetype == 'cooler':
             # cooler tiles can have a transform (e.g. 'ice', 'kr') which
@@ -465,7 +463,7 @@ def tiles(request):
 
     # fetch the tiles
     tilesets = [tilesets[tu] for tu in tileids_by_tileset]
-    accessible_tilesets = [(t, tileids_by_tileset[t.uuid], raw, aggregation_groups.get(t.uuid, None)) for t in tilesets if ((not t.private) or request.user == t.owner)]
+    accessible_tilesets = [(t, tileids_by_tileset[t.uuid], raw, *aggregation_groups.get(t.uuid, (None, None))) for t in tilesets if ((not t.private) or request.user == t.owner)]
 
     #pool = mp.Pool(6)
 

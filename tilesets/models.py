@@ -91,11 +91,7 @@ class AggregationGroups(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     higlassVersion = models.CharField(max_length=16, default='')
     uuid = models.CharField(max_length=100, unique=True, default=decoded_slugid)
-    tilesetUid = models.CharField(max_length=100, null=True)
     groups = models.TextField()
-
-    # TODO: remove tilesetUid
-    # TODO: add string representing the aggregation function
 
     class Meta:
         ordering = ('created',)
@@ -105,4 +101,4 @@ class AggregationGroups(models.Model):
         Get a string representation of this model. Hopefully useful for the
         admin interface.
         '''
-        return "AggregationGroups [uuid: {}] [tilesetUid: {}]".format(self.uuid, self.tilesetUid)
+        return "AggregationGroups [uuid: {}]".format(self.uuid)

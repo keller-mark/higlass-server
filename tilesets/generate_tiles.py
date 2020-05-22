@@ -122,16 +122,18 @@ def extract_aggregation_groups_uid(tile_id):
     '''
     tile_id_parts = tile_id.split('.')
     agg_groups_uuid = None
-    if len(tile_id_parts) == 4:
+    agg_func_name = None
+    if len(tile_id_parts) == 5:
         agg_groups_uuid = tile_id_parts[3]
+        agg_func_name = tile_id_parts[4]
 
-    return agg_groups_uuid
+    return agg_groups_uuid, agg_func_name
 
 
 def get_tileset_filetype(tileset):
     return tileset.filetype
 
-def generate_1d_tiles(filename, tile_ids, get_data_function, aggregation_groups):
+def generate_1d_tiles(filename, tile_ids, get_data_function, agg_group_arr, agg_func_name):
     '''
     Generate a set of tiles for the given tile_ids.
 
@@ -144,8 +146,10 @@ def generate_1d_tiles(filename, tile_ids, get_data_function, aggregation_groups)
         to be retrieved
     get_data_function: lambda
         A function which retrieves the data for this tile
-    aggregation_groups: [ [int,...], [int,...] ]
+    agg_group_arr: [ [int,...], [int,...] ]
         A list of lists of indices of rows to aggregate ("aggregation groups").
+    agg_func_name: str
+        The name of the aggregation function to use.
 
     Returns
     -------
@@ -153,7 +157,13 @@ def generate_1d_tiles(filename, tile_ids, get_data_function, aggregation_groups)
         A list of tile_id, tile_data tuples
     '''
 
-    print(aggregation_groups)
+    agg_func_map = {
+        "sum": lambda x: np.sum(x, axis=0),
+        "mean": lambda x: np.mean(x, axis=0),
+        "median": lambda x: np.median(x, axis=0),
+        "std": lambda x: np.std(x, axis=0),
+        "var": lambda x: np.var(x, axis=0)
+    }
 
     generated_tiles = []
 
@@ -163,15 +173,9 @@ def generate_1d_tiles(filename, tile_ids, get_data_function, aggregation_groups)
 
         dense = get_data_function(filename, tile_position)
 
-        print(type(dense))
-        print(dense.shape)
-
-        if aggregation_groups != None:
-            aggregation_function = lambda x: np.sum(x, axis=0) # TODO: enable different ones to be used
-            dense = np.array(list(map(aggregation_function, [ dense[agg_group] for agg_group in aggregation_groups ])))
-
-        print(type(dense))
-        print(dense.shape)
+        if agg_group_arr != None and agg_func_name != None:
+            assert(agg_func_name in agg_func_map)
+            dense = np.array(list(map(agg_func_map[agg_func_name], [ dense[arr] for arr in agg_group_arr ])))
 
         if len(dense):
             max_dense = max(dense.reshape(-1,))
@@ -528,7 +532,7 @@ def generate_tiles(tileset_tile_ids):
     tile_list: [(tile_id, tile_data),...]
         A list of tile_id, tile_data tuples
     '''
-    tileset, tile_ids, raw, aggregation_group = tileset_tile_ids
+    tileset, tile_ids, raw, agg_group, agg_func_name = tileset_tile_ids
 
     if tileset.filetype == 'hitile':
         return generate_hitile_tiles(tileset, tile_ids)
@@ -549,10 +553,10 @@ def generate_tiles(tileset_tile_ids):
         chromsizes = get_chromsizes(tileset)
         return hgbb.tiles(tileset.datafile.path, tile_ids, chromsizes=chromsizes)
     elif tileset.filetype == 'multivec':
-        groups = None
-        if aggregation_group != None:
+        agg_group_arr = None
+        if agg_group != None and agg_func_name != None:
             try:
-                groups = json.loads(aggregation_group.groups)
+                agg_group_arr = json.loads(agg_group.groups)
             except Exception as ex:
                 # there was an error parsing the JSON array
                 logger.warn(ex)
@@ -560,7 +564,8 @@ def generate_tiles(tileset_tile_ids):
                 tileset.datafile.path,
                 tile_ids,
                 ctmu.get_single_tile,
-                groups)
+                agg_group_arr,
+                agg_func_name)
     elif tileset.filetype == 'imtiles':
         return hgim.get_tiles(tileset.datafile.path, tile_ids, raw)
     elif tileset.filetype == 'bam':

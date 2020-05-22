@@ -18,7 +18,6 @@ class Migration(migrations.Migration):
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('higlassVersion', models.CharField(default='', max_length=16)),
                 ('uuid', models.CharField(default=tilesets.models.decoded_slugid, max_length=100, unique=True)),
-                ('tilesetUid', models.CharField(max_length=100)),
                 ('groups', models.TextField()),
             ],
             options={

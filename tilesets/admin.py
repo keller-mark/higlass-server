@@ -41,7 +41,6 @@ class AggregationGroupsAdmin(admin.ModelAdmin):
         'created',
         'uuid',
         'higlassVersion',
-        'tilesetUid',
     ]
 
 admin.site.register(Tileset, TilesetAdmin)
